@@ -1,0 +1,37 @@
+{
+  "general": {
+  },
+
+  "mqtt": {
+    "host1": "wirenboard",
+    "host": "192.168.1.20"
+  },
+
+  "templates": [
+  	{
+  		"name": "kitchen",
+  		"relayCount": 3
+  	},
+  	{
+  		"name": "touch-2866",
+  		"relayCount": 3
+  	},
+  	{
+  	 	"name": "curtain4ch-3424",
+  		"relayCount": 4,
+  		"curtain": true
+  	}  	
+  ],
+
+  "debug": {
+    "Log": [
+      {
+        "name": "Main",
+        "file_name": "/run/tasmotawb.log",
+        "console_level": 4,
+        "file_level": 3,
+        "log_time": "yes"
+      }
+    ]
+  }
+}
