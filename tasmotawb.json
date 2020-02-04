@@ -12,19 +12,28 @@
   		"name": "kitchen",
   		"relayCount": 3
   	},
-  	{
-  		"name": "touch-2866",
-  		"relayCount": 3
-  	},
+    {
+      "name": "touch-2866",
+      "relayCount": 3
+    },
+    {
+      "name": "curtain-4557",
+      "relayCount": 2,
+      "curtain": true
+    },
   	{
   	 	"name": "curtain4ch-3424",
   		"relayCount": 4,
   		"curtain": true
-  	}  	
+  	},  	
+    {
+      "name": "mini-1",
+      "relayCount": 1
+  }
   ],
 
   "debug": {
-    "Log": [
+    "log": [
       {
         "name": "Main",
         "file_name": "/run/tasmotawb.log",
