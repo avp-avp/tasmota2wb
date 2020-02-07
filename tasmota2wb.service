@@ -1,0 +1,14 @@
+[Unit]
+Description=tasmota to WB 
+After=network.target
+
+[Service]
+ExecStart=/usr/bin/tasmota2wb -c /etc/tasmota2wb.conf
+WorkingDirectory=/mnt/data/
+StandardOutput=inherit
+StandardError=inherit
+Restart=always
+User=root
+
+[Install]
+WantedBy=multi-user.target
