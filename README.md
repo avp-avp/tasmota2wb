@@ -1,6 +1,10 @@
 # tasmota2wb
 Convert tasmota mqtt notation to wirenboard notation
 
+### Required for compilation: 
+libjsoncpp-dev
+libmosquittopp-dev
+
 ## How to build
 
 - git clone git@github.com:avp-avp/tasmota2wb.git
@@ -26,3 +30,8 @@ Run bould command with devenv chroot
 - scp tasmota2wb/zigbee2wb root@wirenboard:/usr/bin/tasmota2wb
 - scp tasmota2wb.json root@wirenboard:/etc/tasmota2wb.conf
 - ssh root@wirenboard "service tasmota2wb start"
+
+
+### Required for compilation: 
+libjsoncpp-dev
+libmosquittopp-dev
