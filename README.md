@@ -27,11 +27,6 @@ Run bould command with devenv chroot
 ## How to run on wirenboard
 
 - scp tasmota2wb.service root@wirenboard:/etc/systemd/system/
-- scp tasmota2wb/zigbee2wb root@wirenboard:/usr/bin/tasmota2wb
+- scp tasmota2wb/tasmota2wb root@wirenboard:/usr/bin/tasmota2wb
 - scp tasmota2wb.json root@wirenboard:/etc/tasmota2wb.conf
 - ssh root@wirenboard "service tasmota2wb start"
-
-
-### Required for compilation: 
-libjsoncpp-dev
-libmosquittopp-dev
