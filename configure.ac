@@ -3,8 +3,7 @@ AM_INIT_AUTOMAKE([-Wall -Werror foreign])
 
 AC_LANG([C++])
 AM_PROG_AR
-#AC_PROG_CXX
-#AM_PROG_LIBTOOL
+AC_PROG_CXX
 LT_INIT
 AC_CONFIG_MACRO_DIR([m4])
 
@@ -19,7 +18,6 @@ AC_SEARCH_LIBS([_ZNK4Json5Value4sizeEv], [jsoncpp], [], [])
 AC_CONFIG_FILES([
  Makefile
  libs/libutils/Makefile
- libs/libcomm/Makefile
  libs/libwb/Makefile
  tasmota2wb/Makefile
 ])
