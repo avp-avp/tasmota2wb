@@ -3,9 +3,8 @@
   },
 
   "mqtt": {
-    "host1": "wirenboard",
-    "host": "192.168.1.20",
-    "groups" : ["tasmotas", "sonoffs"]
+    "host": "localhost",
+    "groups_" : ["tasmotas", "sonoffs"]
   },
 
   "debug": {
