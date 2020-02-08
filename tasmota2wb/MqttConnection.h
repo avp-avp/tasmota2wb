@@ -3,17 +3,15 @@
 #include "../libs/libwb/WBDevice.h"
 #include "mosquittopp.h"
 
-struct Template{
+struct CTasmotaWBDevice {
+	CTasmotaWBDevice(string Name, string Description);
+	string_map params;
 	int relayCount;
-	bool curtain;
-
-	Template(int _relayCount, bool _curtain);
-	Template();
-
+	bool isShutter;
+	CWBDevice wbDevice;
 };
 
-typedef map<string, Template> TemplateMap;
-
+typedef map<string, CTasmotaWBDevice*> CTasmotaWBDeviceMap;
 
 class CMqttConnection
 	:public mosqpp::mosquittopp
@@ -21,8 +19,11 @@ class CMqttConnection
 	string m_Server;
 	CLog *m_Log;
 	bool m_isConnected, m_bStop;
-	TemplateMap m_Templates;
-	CWBDeviceMap m_Devices;
+	CTasmotaWBDeviceMap m_Devices;
+	string_vector m_Groups;
+
+	enum ActiveCommand {None=0, Module, State, SetOption80} m_ActiveCommand;
+	string m_ActiveCommandDevice;
 
 public:
 	CMqttConnection(CConfigItem config, CLog* log);
@@ -42,5 +43,7 @@ private:
 
 	void sendCommand(string device, string cmd, string data="");
 	void SendUpdate();
-	void CreateDevice(CWBDevice* dev);
+	void CreateDevice(CTasmotaWBDevice* dev);
+	void subscribe(const string &topic);
+	void publish(const string &topic, const string &payload, bool retain=false);
 };

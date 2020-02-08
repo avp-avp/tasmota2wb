@@ -1,0 +1,22 @@
+{
+  "general": {
+  },
+
+  "mqtt": {
+    "host1": "wirenboard",
+    "host": "192.168.1.20",
+    "groups" : ["tasmotas", "sonoffs"]
+  },
+
+  "debug": {
+    "log": [
+      {
+        "name": "Main",
+        "file_name": "./tasmota2wb.log",
+        "console_level": 40,
+        "file_level": 3,
+        "log_time": "yes"
+      }
+    ]
+  }
+}

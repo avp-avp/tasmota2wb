@@ -26,7 +26,7 @@ int main(int argc, char* argv[])
 	bool bDaemon = false;
 	string serverName;
 	string mqttHost = "wirenboard";
-	string configName = "tasmotawb.json";
+	string configName = "tasmota2wb.json";
 
 #ifndef WIN32
 	int c;
