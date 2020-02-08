@@ -27,7 +27,7 @@ Run bould command with devenv chroot
 
 ## How to run on wirenboard
 
-- scp tasmota2wb.service root@<ip of wirenboard>:/etc/systemd/system/
-- scp tasmota2wb/tasmota2wb root@<ip of wirenboard>:/usr/bin/tasmota2wb
-- scp tasmota2wb.json root@<ip of wirenboard>:/etc/tasmota2wb.conf
-- ssh root@<ip of wirenboard> "service tasmota2wb start"
+- scp tasmota2wb.service root@\<ip of wirenboard>:/etc/systemd/system/
+- scp tasmota2wb/tasmota2wb root@\<ip of wirenboard>:/usr/bin/tasmota2wb
+- scp tasmota2wb.json root@\<ip of wirenboard>:/etc/tasmota2wb.conf
+- ssh root@\<ip of wirenboard> "service tasmota2wb start"
