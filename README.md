@@ -8,6 +8,7 @@ libmosquittopp-dev
 ## How to build
 
 - git clone git@github.com:avp-avp/tasmota2wb.git
+- cd tasmota2wb
 - git submodule init  
 - git submodule update
 - autoreconf -fvi
