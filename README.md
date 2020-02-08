@@ -19,7 +19,7 @@ libmosquittopp-dev
 
 You need Wirenboard development env from https://github.com/contactless/wirenboard 
 
-Run bould command with devenv chroot
+Run build command with devenv chroot
 - export WBDEV_TARGET=wb6
 - ../wbdev chroot autoreconf -fvi
 - ../wbdev chroot ./configure
