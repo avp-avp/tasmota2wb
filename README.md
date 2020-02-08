@@ -8,6 +8,7 @@ libmosquittopp-dev
 ## How to build
 
 - git clone git@github.com:avp-avp/tasmota2wb.git
+- cd tasmota2wb
 - git submodule init  
 - git submodule update
 - autoreconf -fvi
@@ -26,7 +27,7 @@ Run bould command with devenv chroot
 
 ## How to run on wirenboard
 
-- scp tasmota2wb.service root@wirenboard:/etc/systemd/system/
-- scp tasmota2wb/tasmota2wb root@wirenboard:/usr/bin/tasmota2wb
-- scp tasmota2wb.json root@wirenboard:/etc/tasmota2wb.conf
-- ssh root@wirenboard "service tasmota2wb start"
+- scp tasmota2wb.service root@<ip of wirenboard>:/etc/systemd/system/
+- scp tasmota2wb/tasmota2wb root@<ip of wirenboard>:/usr/bin/tasmota2wb
+- scp tasmota2wb.json root@<ip of wirenboard>:/etc/tasmota2wb.conf
+- ssh root@<ip of wirenboard> "service tasmota2wb start"

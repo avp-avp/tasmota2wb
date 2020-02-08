@@ -35,6 +35,8 @@ CMqttConnection::CMqttConnection(CConfigItem config, CLog* log)
 		m_Groups.push_back(name);
 	}
 
+	if (m_Groups.size() == 0) m_Groups.push_back("tasmotas");
+
 	m_Log = log;
 	m_Log->Printf(0, "Starting tasmota2wb");
 
