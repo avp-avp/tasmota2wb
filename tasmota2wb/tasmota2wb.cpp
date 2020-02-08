@@ -23,17 +23,18 @@
 int main(int argc, char* argv[])
 {
 
-	bool bDaemon = false;
+	bool bDaemon = false, bDebug = false;
 	string serverName;
 	string mqttHost = "wirenboard";
 	string configName = "tasmota2wb.json";
+	
 
 #ifndef WIN32
 	int c;
 	//~ int digit_optind = 0;
 	//~ int aopt = 0, bopt = 0;
 	//~ char *copt = 0, *dopt = 0;
-	while ((c = getopt(argc, argv, "c:s:")) != -1) {
+	while ((c = getopt(argc, argv, "dc:s:")) != -1) {
 		//~ int this_option_optind = optind ? optind : 1;
 		switch (c) {
 		case 'c':
@@ -41,6 +42,9 @@ int main(int argc, char* argv[])
 			break;
 		case 's':
 			serverName = optarg;
+			break;
+		case 'd':
+			bDebug = true;
 			break;
 }
 	}
@@ -64,6 +68,7 @@ int main(int argc, char* argv[])
 		}
 
 		CLog* log = CLog::Default();
+		if (bDebug) log->SetConsoleLogLevel(50);
 
 		CMqttConnection mqttConn(config.getRoot(), log);
 

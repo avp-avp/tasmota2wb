@@ -127,7 +127,7 @@ void CMqttConnection::on_message(const struct mosquitto_message *message)
 				Json::Value obj; Parse(payload, obj);
 				for(int i=0;i<5;i++) {
 					string controlName = string("K")+itoa(i+1);
-					string powerName = string("POWER")+itoa(i+1);
+					string powerName = dev->relayCount==1 ? "POWER" : string("POWER")+itoa(i+1);
 					string val = obj[powerName].asString();
 					if (dev->wbDevice.controlExists(controlName) && val.length()) {
 						string value = val=="ON"?"1":"0";
@@ -183,7 +183,8 @@ void CMqttConnection::on_message(const struct mosquitto_message *message)
 					int relayCount=0;
 					for (; relayCount<16; relayCount++) {
 						string tsmCtl = "POWER"+itoa(relayCount+1);
-						if (!status11.isMember(tsmCtl)) break;
+						if (relayCount==0 && status11.isMember("POWER")) tsmCtl = "POWER";
+						else if (!status11.isMember(tsmCtl)) break;
 						if (dev->isShutter && relayCount<2) {
 							if (relayCount==0) {
 								dev->wbDevice.addControl("Up", CWBControl::PushButton, false);
@@ -215,7 +216,7 @@ void CMqttConnection::on_message(const struct mosquitto_message *message)
 
 				for(int i=0;i<dev->relayCount;i++) {
 					string wbCtl = "K"+itoa(i+1);
-					string tsmCtl = "POWER"+itoa(i+1);
+					string tsmCtl = dev->relayCount==1 ? "POWER" : "POWER"+itoa(i+1);
 					if (obj.isMember(tsmCtl) && dev->wbDevice.controlExists(wbCtl)) {
 				 		bool power = obj[tsmCtl]=="ON";
 						m_Log->Printf(4, "Copy %s.%s=%s to %s", device.c_str(), tsmCtl.c_str(), power?"on":"off", wbCtl.c_str());
@@ -246,7 +247,7 @@ void CMqttConnection::on_message(const struct mosquitto_message *message)
 						int relay = atoi(v[4].c_str()+1);
 						if (relay>(dev->isShutter?2:0) && relay<5)
 						{
-							string cmd = string("POWER")+itoa(relay);
+							string cmd = dev->relayCount==1 ? "POWER" : string("POWER")+itoa(relay);
 							sendCommand(device, cmd, payload);
 						}
 					} else if(v[4]=="Down") {
