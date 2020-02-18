@@ -22,9 +22,6 @@ class CMqttConnection
 	CTasmotaWBDeviceMap m_Devices;
 	string_vector m_Groups;
 
-	enum ActiveCommand {None=0, Module, State, SetOption80} m_ActiveCommand;
-	string m_ActiveCommandDevice;
-
 public:
 	CMqttConnection(CConfigItem config, CLog* log);
 	~CMqttConnection();
@@ -46,4 +43,6 @@ private:
 	void CreateDevice(CTasmotaWBDevice* dev);
 	void subscribe(const string &topic);
 	void publish(const string &topic, const string &payload, bool retain=false);
+
+	int countEntity(string preffix, Json::Value values);
 };

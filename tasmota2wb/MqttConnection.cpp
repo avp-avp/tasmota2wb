@@ -22,7 +22,7 @@ CTasmotaWBDevice::CTasmotaWBDevice(string Name, string Description)
 
 
 CMqttConnection::CMqttConnection(CConfigItem config, CLog* log)
-	:m_isConnected(false), mosquittopp("Tasmota2Wb"), m_bStop(false)
+	:m_isConnected(false), mosquittopp(PACKAGE_STRING), m_bStop(false)
 {
 	
 	m_Server = config.getStr("mqtt/host", false, "wirenboard");
@@ -76,8 +76,6 @@ void CMqttConnection::on_connect(int rc)
 		publish("cmnd/"+(*group)+"/Status", "0");
 		publish("cmnd/"+(*group)+"/SetOption80", "");
 	}
-	m_ActiveCommand = SetOption80;
-
 }
 
 void CMqttConnection::on_disconnect(int rc)
@@ -137,20 +135,19 @@ void CMqttConnection::on_message(const struct mosquitto_message *message)
 
 				}
 				SendUpdate();	
-			} else if (m_ActiveCommand==None) {
+			} else {
 				publish("cmnd/"+(v[1])+"/Status", "0");
 				publish("cmnd/"+(v[1])+"/SetOption80", "0");
-				m_ActiveCommand=SetOption80;
 			}
 		} else if (v[0] == "stat" && (v[2].find("STATUS")==0 || v[2]=="RESULT")) {
-			string field = v[2];
-			if (field=="RESULT") {
-				if (m_ActiveCommand==SetOption80) field = "SetOption80";
-				else if (m_ActiveCommand==None) {
-				}
-				else return;
-			}
+			Json::Value jsonPayload; Parse(payload, jsonPayload);
+			string_vector names = jsonPayload.getMemberNames();
 
+			if (names.size()!=1) {
+				m_Log->Printf(0, "Topic %s=%s have more then 1 item", message->topic, payload.c_str());
+				return;
+			} 
+			
 			CTasmotaWBDevice *dev;
 			if (m_Devices.find(device)==m_Devices.end())
 			{
@@ -158,13 +155,13 @@ void CMqttConnection::on_message(const struct mosquitto_message *message)
 				m_Devices[device] = dev;			
 			} else dev = m_Devices[device];
 
-			dev->params[field] = payload;
+			dev->params[names[0]] = payload;
 
 			if (dev->wbDevice.getControls()->size()==0 &&
-					dev->params.find("STATUS")!=dev->params.end() &&
+					dev->params.find("Status")!=dev->params.end() &&
 					dev->params.find("SetOption80")!=dev->params.end() &&
-					dev->params.find("STATUS11")!=dev->params.end()) {
-				Json::Value status; Parse(dev->params["STATUS"], status);
+					dev->params.find("StatusSTS")!=dev->params.end()) {
+				Json::Value status; Parse(dev->params["Status"], status);
 				string desc;
 				if (status.isMember("Status") && status["Status"].isMember("FriendlyName") && 
 					status["Status"]["FriendlyName"].isArray()) {
@@ -177,31 +174,28 @@ void CMqttConnection::on_message(const struct mosquitto_message *message)
 					dev->isShutter = true;
 				}
 
-				Json::Value status11; Parse(dev->params["STATUS11"], status11);
+				Json::Value status11; Parse(dev->params["StatusSTS"], status11);
 				if (status11.isMember("StatusSTS")) {
 					status11 = status11["StatusSTS"];
-					int relayCount=0;
-					for (; relayCount<16; relayCount++) {
-						string tsmCtl = "POWER"+itoa(relayCount+1);
-						if (relayCount==0 && status11.isMember("POWER")) tsmCtl = "POWER";
-						else if (!status11.isMember(tsmCtl)) break;
-						if (dev->isShutter && relayCount<2) {
-							if (relayCount==0) {
+					dev->relayCount = countEntity("POWER", status11);
+					int ChannelCount = countEntity("Channel", status11);
+
+					for (int i=0;i<dev->relayCount;i++) {
+						string tsmCtl = dev->relayCount==1 ? "POWER" : "POWER"+itoa(i+1);
+						if (dev->isShutter && i<2) {
+							if (i==0) {
 								dev->wbDevice.addControl("Up", CWBControl::PushButton, false);
 								dev->wbDevice.addControl("Down", CWBControl::PushButton, false);
 								dev->wbDevice.addControl("Stop", CWBControl::PushButton, false);
 							}
 						} else {
-							string wbCtl = "K"+itoa(relayCount+1);
+							string wbCtl = "K"+itoa(i+1);
 							dev->wbDevice.addControl(wbCtl, CWBControl::Switch, false);
 							bool power = status11[tsmCtl]=="ON";
 							dev->wbDevice.set(wbCtl, power?"1":"0");
 							m_Log->Printf(4, "Add %s with %s", (device+"/"+wbCtl).c_str(), power?"ON":"OFF");
 						}
-					}
-					if (relayCount>0) {
-						dev->relayCount = relayCount;
-					}
+					}								
 				}
 				
 				m_Log->Printf(0, "Create %s(%s). %d relays%s", device.c_str(), desc.c_str(), dev->relayCount, dev->isShutter?" with shuter":"");
@@ -315,4 +309,14 @@ void CMqttConnection::subscribe(const string &topic) {
 
 void CMqttConnection::publish(const string &topic, const string &payload, bool retain) {
 	mosqpp::mosquittopp::publish(NULL, topic.c_str(), payload.length(), payload.c_str(), 0, retain);
+}
+
+int CMqttConnection::countEntity(string preffix, Json::Value values){
+	if (values.isMember(preffix)) return 1;
+
+	for (int count = 16; count>=0; count--) {
+		if (values.isMember(preffix+itoa(count))) return count;
+	}
+
+	return 0;
 }
