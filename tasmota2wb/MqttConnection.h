@@ -9,6 +9,8 @@ struct CTasmotaWBDevice {
 	int relayCount;
 	bool isShutter;
 	CWBDevice wbDevice;
+	time_t lastMessage;
+	string ip;
 };
 
 typedef map<string, CTasmotaWBDevice*> CTasmotaWBDeviceMap;
@@ -21,12 +23,15 @@ class CMqttConnection
 	bool m_isConnected, m_bStop;
 	CTasmotaWBDeviceMap m_Devices;
 	string_vector m_Groups;
+	CWBDevice m_tasmotaDevice;
+	time_t m_lastIdle;
 
 public:
 	CMqttConnection(CConfigItem config, CLog* log);
 	~CMqttConnection();
 	void NewMessage(string message);
 	bool isStopped() {return m_bStop;};
+	void onIdle();
 
 private:
 	virtual void on_connect(int rc);
@@ -41,8 +46,11 @@ private:
 	void sendCommand(string device, string cmd, string data="");
 	void SendUpdate();
 	void CreateDevice(CTasmotaWBDevice* dev);
+	void CreateDevice(CWBDevice* dev);
 	void subscribe(const string &topic);
 	void publish(const string &topic, const string &payload, bool retain=false);
 
 	int countEntity(string preffix, Json::Value values);
+	void queryDevice(string deviceName);
+
 };

@@ -17,14 +17,17 @@
 
 
 CTasmotaWBDevice::CTasmotaWBDevice(string Name, string Description)
-	:wbDevice(Name, Description), relayCount(-1), isShutter(0) {		
+	:wbDevice(Name, Description), relayCount(-1), isShutter(0) {	
 };
 
 
 CMqttConnection::CMqttConnection(CConfigItem config, CLog* log)
-	:m_isConnected(false), mosquittopp(PACKAGE_STRING), m_bStop(false)
+	:m_isConnected(false), mosquittopp(PACKAGE_STRING), m_bStop(false),
+	m_tasmotaDevice("tasmota", "Tasmota")
 {
-	
+	time(&m_lastIdle);
+	m_tasmotaDevice.addControl("log");
+	m_tasmotaDevice.addControl("ip");
 	m_Server = config.getStr("mqtt/host", false, "wirenboard");
 
 	CConfigItemList groupList;
@@ -42,7 +45,6 @@ CMqttConnection::CMqttConnection(CConfigItem config, CLog* log)
 
 	connect(m_Server.c_str());
 	loop_start();
-
 }
 
 CMqttConnection::~CMqttConnection()
@@ -70,12 +72,14 @@ void CMqttConnection::on_connect(int rc)
 		subscribe(topic);
 	}
 
+	subscribe("/devices/tasmota/controls/+/on");
 	subscribe("tele/#");
 	subscribe("stat/#");
 	for_each_const(string_vector, m_Groups, group) {
 		publish("cmnd/"+(*group)+"/Status", "0");
-		publish("cmnd/"+(*group)+"/SetOption80", "");
+		//publish("cmnd/"+(*group)+"/SetOption80", "");
 	}
+	CreateDevice(&m_tasmotaDevice);
 }
 
 void CMqttConnection::on_disconnect(int rc)
@@ -117,27 +121,36 @@ void CMqttConnection::on_message(const struct mosquitto_message *message)
 		if (v.size() < 3)
 			return;
 
-		string device = v[1];
+		string deviceName = v[1];
+		CTasmotaWBDevice *tasmotaDevice = NULL;
+		if (v[0] == "tele" || v[0] == "stat") {
+			if (m_Devices.find(deviceName)!=m_Devices.end()) {
+				tasmotaDevice = m_Devices[deviceName];
+				tasmotaDevice->lastMessage = time(NULL);
+				if (tasmotaDevice->wbDevice.getS("ip")=="Offline"){
+					tasmotaDevice->wbDevice.set("ip", tasmotaDevice->ip);
+					SendUpdate();
+				}
+			}
+		}
 
 		if ((v[0] == "tele" && v[2]=="STATE")) {
-			if (m_Devices.find(device)!=m_Devices.end()) {
-				CTasmotaWBDevice *dev = m_Devices[device];
+			if (tasmotaDevice) {
 				Json::Value obj; Parse(payload, obj);
 				for(int i=0;i<5;i++) {
 					string controlName = string("K")+itoa(i+1);
-					string powerName = dev->relayCount==1 ? "POWER" : string("POWER")+itoa(i+1);
+					string powerName = tasmotaDevice->relayCount==1 ? "POWER" : string("POWER")+itoa(i+1);
 					string val = obj[powerName].asString();
-					if (dev->wbDevice.controlExists(controlName) && val.length()) {
+					if (tasmotaDevice->wbDevice.controlExists(controlName) && val.length()) {
 						string value = val=="ON"?"1":"0";
-						dev->wbDevice.set(controlName, value);
+						tasmotaDevice->wbDevice.set(controlName, value);
 						m_Log->Printf(5, "%s->%s", controlName.c_str(), value.c_str());
 					}
 
 				}
 				SendUpdate();	
 			} else {
-				publish("cmnd/"+(v[1])+"/Status", "0");
-				publish("cmnd/"+(v[1])+"/SetOption80", "0");
+				queryDevice(deviceName);
 			}
 		} else if (v[0] == "stat" && (v[2].find("STATUS")==0 || v[2]=="RESULT")) {
 			Json::Value jsonPayload; Parse(payload, jsonPayload);
@@ -148,73 +161,82 @@ void CMqttConnection::on_message(const struct mosquitto_message *message)
 				return;
 			} 
 			
-			CTasmotaWBDevice *dev;
-			if (m_Devices.find(device)==m_Devices.end())
+			if (!tasmotaDevice)
 			{
-				dev = new CTasmotaWBDevice(device, device); 
-				m_Devices[device] = dev;			
-			} else dev = m_Devices[device];
+				tasmotaDevice = new CTasmotaWBDevice(deviceName, deviceName); 
+				tasmotaDevice->wbDevice.addControl("ip"); tasmotaDevice->wbDevice.set("ip", "Unknown");
+				m_Devices[deviceName] = tasmotaDevice;			
+			} 
 
-			dev->params[names[0]] = payload;
+			tasmotaDevice->params[names[0]] = payload;
 
-			if (dev->wbDevice.getControls()->size()==0 &&
-					dev->params.find("Status")!=dev->params.end() &&
-					dev->params.find("SetOption80")!=dev->params.end() &&
-					dev->params.find("StatusSTS")!=dev->params.end()) {
-				Json::Value status; Parse(dev->params["Status"], status);
+			if (tasmotaDevice->wbDevice.getControls()->size()<2 &&
+					tasmotaDevice->params.find("Status")!=tasmotaDevice->params.end() &&
+					tasmotaDevice->params.find("SetOption80")!=tasmotaDevice->params.end() &&
+					tasmotaDevice->params.find("StatusSTS")!=tasmotaDevice->params.end() && 
+					tasmotaDevice->params.find("StatusNET")!=tasmotaDevice->params.end()
+				) {
+				Json::Value status; Parse(tasmotaDevice->params["Status"], status);
 				string desc;
 				if (status.isMember("Status") && status["Status"].isMember("FriendlyName") && 
 					status["Status"]["FriendlyName"].isArray()) {
 					desc = status["Status"]["FriendlyName"][0].asString();
-					dev->wbDevice.enrichDevice("name", desc);
+					tasmotaDevice->wbDevice.enrichDevice("name", desc);
 				}
 
-				Json::Value SetOption80; Parse(dev->params["SetOption80"], SetOption80);
+				Json::Value SetOption80; Parse(tasmotaDevice->params["SetOption80"], SetOption80);
 				if (SetOption80.isMember("SetOption80") && SetOption80["SetOption80"]=="ON") {
-					dev->isShutter = true;
+					tasmotaDevice->isShutter = true;
 				}
 
-				Json::Value status11; Parse(dev->params["StatusSTS"], status11);
+				Json::Value status11; Parse(tasmotaDevice->params["StatusSTS"], status11);
 				if (status11.isMember("StatusSTS")) {
 					status11 = status11["StatusSTS"];
-					dev->relayCount = countEntity("POWER", status11);
+					tasmotaDevice->relayCount = countEntity("POWER", status11);
 					int ChannelCount = countEntity("Channel", status11);
 
-					for (int i=0;i<dev->relayCount;i++) {
-						string tsmCtl = dev->relayCount==1 ? "POWER" : "POWER"+itoa(i+1);
-						if (dev->isShutter && i<2) {
+					for (int i=0;i<tasmotaDevice->relayCount;i++) {
+						string tsmCtl = tasmotaDevice->relayCount==1 ? "POWER" : "POWER"+itoa(i+1);
+						if (tasmotaDevice->isShutter && i<2) {
 							if (i==0) {
-								dev->wbDevice.addControl("Up", CWBControl::PushButton, false);
-								dev->wbDevice.addControl("Down", CWBControl::PushButton, false);
-								dev->wbDevice.addControl("Stop", CWBControl::PushButton, false);
+								tasmotaDevice->wbDevice.addControl("Up", CWBControl::PushButton, false);
+								tasmotaDevice->wbDevice.addControl("Down", CWBControl::PushButton, false);
+								tasmotaDevice->wbDevice.addControl("Stop", CWBControl::PushButton, false);
 							}
 						} else {
 							string wbCtl = "K"+itoa(i+1);
-							dev->wbDevice.addControl(wbCtl, CWBControl::Switch, false);
+							tasmotaDevice->wbDevice.addControl(wbCtl, CWBControl::Switch, false);
 							bool power = status11[tsmCtl]=="ON";
-							dev->wbDevice.set(wbCtl, power?"1":"0");
-							m_Log->Printf(4, "Add %s with %s", (device+"/"+wbCtl).c_str(), power?"ON":"OFF");
+							tasmotaDevice->wbDevice.set(wbCtl, power?"1":"0");
+							m_Log->Printf(4, "Add %s with %s", (deviceName+"/"+wbCtl).c_str(), power?"ON":"OFF");
 						}
 					}								
 				}
 				
-				m_Log->Printf(0, "Create %s(%s). %d relays%s", device.c_str(), desc.c_str(), dev->relayCount, dev->isShutter?" with shuter":"");
-				CreateDevice(dev);
+				Json::Value statusNet; Parse(tasmotaDevice->params["StatusNET"], statusNet);
+				if (statusNet.isMember("StatusNET")) {
+					statusNet = statusNet["StatusNET"];
+					tasmotaDevice->ip = statusNet["IPAddress"].asString();	
+					tasmotaDevice->wbDevice.set("ip", tasmotaDevice->ip);		
+				}
+				
+				m_Log->Printf(0, "Create %s(%s). %d relays%s", deviceName.c_str(), desc.c_str(), tasmotaDevice->relayCount, tasmotaDevice->isShutter?" with shuter":"");
+				CreateDevice(tasmotaDevice);
 				SendUpdate();
-				string topic = "/devices/"+device+"/controls/+/on"; 
+				string topic = "/devices/"+deviceName+"/controls/+/on"; 
 				m_Log->Printf(5, "subscribe to %s", topic.c_str());
 				subscribe(topic.c_str());
-				dev->params.empty();
+				tasmotaDevice->params.empty();
 			} else {
 				Json::Value obj; Parse(payload, obj);
 
-				for(int i=0;i<dev->relayCount;i++) {
+				for(int i=0;i<tasmotaDevice->relayCount;i++) {
 					string wbCtl = "K"+itoa(i+1);
-					string tsmCtl = dev->relayCount==1 ? "POWER" : "POWER"+itoa(i+1);
-					if (obj.isMember(tsmCtl) && dev->wbDevice.controlExists(wbCtl)) {
+					string tsmCtl = tasmotaDevice->relayCount==1 ? "POWER" : "POWER"+itoa(i+1);
+					if (obj.isMember(tsmCtl) && tasmotaDevice->wbDevice.controlExists(wbCtl)) {
 				 		bool power = obj[tsmCtl]=="ON";
-						m_Log->Printf(4, "Copy %s.%s=%s to %s", device.c_str(), tsmCtl.c_str(), power?"on":"off", wbCtl.c_str());
-						dev->wbDevice.set(wbCtl, power?"1":"0");
+						m_Log->Printf(4, "Copy %s.%s=%s to %s", deviceName.c_str(), tsmCtl.c_str(), power?"on":"off", wbCtl.c_str());
+						tasmotaDevice->wbDevice.set(wbCtl, power?"1":"0");
 					}
 				}
 				SendUpdate();
@@ -222,12 +244,28 @@ void CMqttConnection::on_message(const struct mosquitto_message *message)
 		} 
 
 		if (v[0] == "tele") {
-			if (v[2]=="LWT" && payload=="Online") { // Device online
-				sendCommand(device, "status");
+			if (v[2]=="LWT") {
+				if(payload=="Online") { // Device online
+					if (tasmotaDevice) { 
+						sendCommand(deviceName, "status");
+						if (tasmotaDevice->wbDevice.getS("ip")=="Offline") {
+							tasmotaDevice->wbDevice.set("ip", tasmotaDevice->ip);
+							SendUpdate();
+						}
+					} else {
+						queryDevice(deviceName);
+					}
+				} else if(payload=="Offline" && tasmotaDevice) {
+					tasmotaDevice->wbDevice.set("ip", "Offline");
+					SendUpdate();
+				}
+			} else if (v[2]=="STATE") {
+				Json::Value jsonPayload; Parse(payload, jsonPayload);
+				//value = jsonPayload["Time"].asString();
 			}
-		} else if (v[0] == "stat") {
+ 		} else if (v[0] == "stat") {
 			if (v[2]=="STATUS") {
-				if (m_Devices.find(device)!=m_Devices.end()) {
+				if (m_Devices.find(deviceName)!=m_Devices.end()) {
 				} 
 			} else if (v[2]=="RESULT" || v[2]=="STATE") {
 			}
@@ -277,8 +315,13 @@ void CMqttConnection::on_error()
 void CMqttConnection::CreateDevice(CTasmotaWBDevice* dev)
 {
 	m_Devices[dev->wbDevice.getName()] = dev;
+	CreateDevice(&dev->wbDevice);
+}
+
+void CMqttConnection::CreateDevice(CWBDevice* wbDevice)
+{
 	string_map v;
-	dev->wbDevice.createDeviceValues(v);
+	wbDevice->createDeviceValues(v);
 	for_each(string_map, v, i)
 	{
 		publish(i->first, i->second, true);
@@ -289,6 +332,8 @@ void CMqttConnection::CreateDevice(CTasmotaWBDevice* dev)
 void CMqttConnection::SendUpdate()
 {
 	string_map v;
+
+	m_tasmotaDevice.updateValues(v);
 
 	for_each(CTasmotaWBDeviceMap, m_Devices, dev)
 	{
@@ -319,4 +364,24 @@ int CMqttConnection::countEntity(string preffix, Json::Value values){
 	}
 
 	return 0;
+}
+
+void CMqttConnection::onIdle(){
+	if (m_lastIdle+10>time(NULL)) return;
+	time(&m_lastIdle);
+
+	for_each(CTasmotaWBDeviceMap, m_Devices, dev)
+	{
+		if (dev->second && 
+				dev->second->wbDevice.getS("ip")!="Offline" && 
+				dev->second->lastMessage+300<time(NULL))
+			dev->second->wbDevice.set("ip", "Offline");
+	}
+
+	SendUpdate();
+}
+
+void CMqttConnection::queryDevice(string deviceName){
+	publish("cmnd/"+deviceName+"/Status", "0");
+	publish("cmnd/"+deviceName+"/SetOption80", "0");
 }

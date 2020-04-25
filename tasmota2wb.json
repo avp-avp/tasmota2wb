@@ -3,8 +3,8 @@
   },
 
   "mqtt": {
-    "host": "localhost",
-    "groups" : ["tasmotas", "sonoffs"]
+    "host": "192.168.1.20",
+    "groups" : ["curtain-4557-", "tasmotas", "sonoffs"]
   },
 
   "debug": {
@@ -12,7 +12,7 @@
       {
         "name": "Main",
         "file_name": "./tasmota2wb.log",
-        "console_level": 40,
+        "console_level": 4,
         "file_level": 3,
         "log_time": "yes"
       }

@@ -72,8 +72,10 @@ int main(int argc, char* argv[])
 
 		CMqttConnection mqttConn(config.getRoot(), log);
 
-		while (!mqttConn.isStopped())
+		while (!mqttConn.isStopped()) {
 			Sleep(1000);
+			mqttConn.onIdle();
+		}
 	}
 	catch (CHaException ex)
 	{

@@ -2,6 +2,7 @@ AC_INIT([tasmota2wb], [0.1], [avp@avp.name])
 AM_INIT_AUTOMAKE([-Wall -Werror foreign])
 
 AC_LANG([C++])
+CXXFLAGS="$CXXFLAGS -std=c++0x"
 AM_PROG_AR
 AC_PROG_CXX
 LT_INIT
