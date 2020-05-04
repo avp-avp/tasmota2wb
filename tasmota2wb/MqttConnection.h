@@ -12,8 +12,15 @@ struct CTasmotaWBDevice {
 	time_t lastMessage;
 	string ip;
 };
-
 typedef map<string, CTasmotaWBDevice*> CTasmotaWBDeviceMap;
+
+struct CSensorType {
+	string pathSensor, pathValue, name;
+	CWBControl::ControlType type;
+	CSensorType(const CConfigItem* cfg);
+};
+typedef vector<CSensorType> CSensorTypeList;
+
 
 class CMqttConnection
 	:public mosqpp::mosquittopp
@@ -22,6 +29,7 @@ class CMqttConnection
 	CLog *m_Log;
 	bool m_isConnected, m_bStop;
 	CTasmotaWBDeviceMap m_Devices;
+	CSensorTypeList m_SensorTypeList;
 	string_vector m_Groups;
 	CWBDevice m_tasmotaDevice;
 	time_t m_lastIdle;

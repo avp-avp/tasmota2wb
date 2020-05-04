@@ -20,6 +20,15 @@ CTasmotaWBDevice::CTasmotaWBDevice(string Name, string Description)
 	:wbDevice(Name, Description), relayCount(-1), isShutter(0) {	
 };
 
+CSensorType::CSensorType(const CConfigItem* cfg){
+	string path = cfg->getStr("path");
+	string_vector v; SplitString(path, '/', v);
+	if(v.size()!=2) throw(CHaException(CHaException::ErrInvalidConfig, path));
+	pathSensor=v[0];pathValue=v[1];
+	name = cfg->getStr("name");
+	type = CWBControl::getType(cfg->getStr("type"));
+}
+
 
 CMqttConnection::CMqttConnection(CConfigItem config, CLog* log)
 	:m_isConnected(false), mosquittopp(PACKAGE_STRING), m_bStop(false),
@@ -36,6 +45,14 @@ CMqttConnection::CMqttConnection(CConfigItem config, CLog* log)
 	{
 		string name = (*group)->getStr("");
 		m_Groups.push_back(name);
+	}
+
+	CConfigItemList sensorList;
+	config.getList("general/sensors", sensorList);
+	for_each_const(CConfigItemList, sensorList, sensor)
+	{
+		CSensorType s(*sensor);
+		m_SensorTypeList.push_back(s);
 	}
 
 	if (m_Groups.size() == 0) m_Groups.push_back("tasmotas");
@@ -134,23 +151,44 @@ void CMqttConnection::on_message(const struct mosquitto_message *message)
 			}
 		}
 
-		if ((v[0] == "tele" && v[2]=="STATE")) {
-			if (tasmotaDevice) {
-				Json::Value obj; Parse(payload, obj);
-				for(int i=0;i<5;i++) {
-					string controlName = string("K")+itoa(i+1);
-					string powerName = tasmotaDevice->relayCount==1 ? "POWER" : string("POWER")+itoa(i+1);
-					string val = obj[powerName].asString();
-					if (tasmotaDevice->wbDevice.controlExists(controlName) && val.length()) {
-						string value = val=="ON"?"1":"0";
-						tasmotaDevice->wbDevice.set(controlName, value);
-						m_Log->Printf(5, "%s->%s", controlName.c_str(), value.c_str());
-					}
+		if (v[0] == "tele") {
+			if(v[2]=="STATE") {
+				if (tasmotaDevice) {
+					Json::Value obj; Parse(payload, obj);
+					for(int i=0;i<5;i++) {
+						string controlName = string("K")+itoa(i+1);
+						string powerName = tasmotaDevice->relayCount==1 ? "POWER" : string("POWER")+itoa(i+1);
+						string val = obj[powerName].asString();
+						if (tasmotaDevice->wbDevice.controlExists(controlName) && val.length()) {
+							string value = val=="ON"?"1":"0";
+							tasmotaDevice->wbDevice.set(controlName, value);
+							m_Log->Printf(5, "%s->%s", controlName.c_str(), value.c_str());
+						}
 
+					}
+					SendUpdate();	
+				} else {
+					queryDevice(deviceName);
 				}
-				SendUpdate();	
-			} else {
-				queryDevice(deviceName);
+			} else if(v[2]=="SENSOR") {
+				Json::Value obj; Parse(payload, obj);
+				for_each_const(CSensorTypeList, m_SensorTypeList, sensor) {
+					if(obj.isMember(sensor->pathSensor) && obj[sensor->pathSensor].isMember(sensor->pathValue) && tasmotaDevice) {
+						if(!tasmotaDevice->wbDevice.controlExists(sensor->name)) {
+							tasmotaDevice->wbDevice.addControl(sensor->name, sensor->type, true);
+							CreateDevice(tasmotaDevice);
+						}
+
+						if(obj[sensor->pathSensor][sensor->pathValue].isInt())
+							tasmotaDevice->wbDevice.set(sensor->name, obj[sensor->pathSensor][sensor->pathValue].asInt());
+						if(obj[sensor->pathSensor][sensor->pathValue].isDouble())
+							tasmotaDevice->wbDevice.set(sensor->name, obj[sensor->pathSensor][sensor->pathValue].asDouble());
+						else
+							tasmotaDevice->wbDevice.set(sensor->name, obj[sensor->pathSensor][sensor->pathValue].asString());
+						
+						SendUpdate();
+					}
+				}
 			}
 		} else if (v[0] == "stat" && (v[2].find("STATUS")==0 || v[2]=="RESULT")) {
 			Json::Value jsonPayload; Parse(payload, jsonPayload);
