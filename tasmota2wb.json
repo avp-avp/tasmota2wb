@@ -1,26 +1,29 @@
 {
   "general": {
     "sensors": [
-      {"path":"SI7021/Temperature", "type":"temperature", "name":"temperature"},
-      {"path":"SI7021/Humidity", "type":"rel_humidity", "name":"humidity"},
-      {"path":"DS18B20-1/Temperature", "type":"temperature", "name":"home"},
-      {"path":"DS18B20-2/Temperature", "type":"temperature", "name":"heater"},
-      {"path":"ANALOG", "type":"value", "name":"analog"},
-      {"path":"OPENTHERM/settings", "type":"value", "name":"settings"},
-      {"path":"OPENTHERM/SLAVE/CH", "type":"switch", "name":"ch"},
-      {"path":"OPENTHERM/SLAVE/FL", "type":"switch", "name":"fl"},
-      {"path":"OPENTHERM/SLAVE/DHW", "type":"switch", "name":"dhw"},
-      {"path":"OPENTHERM/SLAVE/DIAG", "type":"switch", "name":"diag"},
-      {"path":"OPENTHERM/SLAVE/FAULT", "type":"value", "name":"fault"},
-      {"path":"OPENTHERM/BTMP/REQ", "type":"temperature", "name":"target"},
-      {"path":"OPENTHERM/BTMP/ACT", "type":"temperature", "name":"actual"}
+      {"path":"SI7021/Temperature",    "type":"temperature",  "name":"temperature"},
+      {"path":"SI7021/Humidity",       "type":"rel_humidity", "name":"humidity"},
+      {"path":"DS18B20-1/Temperature", "type":"temperature",  "name":"home"},
+      {"path":"DS18B20-2/Temperature", "type":"temperature",  "name":"heater"},
+      {"path":"ANALOG",                "type":"value",        "name":"analog"},
+      {"path":"OPENTHERM/settings",    "type":"value",        "name":"settings"},
+      {"path":"OPENTHERM/FLM",         "type":"value",        "name":"flm"},
+      {"path":"OPENTHERM/TB",          "type":"temperature",  "name":"tb"},
+      {"path":"OPENTHERM/TDHW",        "type":"temperature",  "name":"tdhw"},
+      {"path":"OPENTHERM/SLAVE/CH",    "type":"switch",       "name":"ch"},
+      {"path":"OPENTHERM/SLAVE/FL",    "type":"switch",       "name":"fl"},
+      {"path":"OPENTHERM/SLAVE/DHW",   "type":"switch",       "name":"dhw"},
+      {"path":"OPENTHERM/SLAVE/DIAG",  "type":"switch",       "name":"diag"},
+      {"path":"OPENTHERM/SLAVE/FAULT", "type":"value",        "name":"fault"},
+      {"path":"OPENTHERM/BTMP/REQ",    "type":"temperature",  "name":"target"},
+      {"path":"OPENTHERM/BTMP/ACT",    "type":"temperature",  "name":"actual"}
     ]
   },
 
   "mqtt": {
-    "host2": "localhost",
+    "host": "localhost",
     "host1": "192.168.1.20",
-    "host": "192.168.178.2",
+    "host2": "192.168.178.2",
     "groups": ["tasmotas"]
   },
 
