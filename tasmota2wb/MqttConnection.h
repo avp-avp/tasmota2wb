@@ -6,16 +6,16 @@
 struct CTasmotaWBDevice {
 	CTasmotaWBDevice(string Name, string Description);
 	string_map params;
-	int relayCount;
+	int relayCount, upgradeState;
 	bool isShutter;
 	CWBDevice wbDevice;
 	time_t lastMessage;
-	string ip;
+	string ip, OtaUrl;
 };
 typedef map<string, CTasmotaWBDevice*> CTasmotaWBDeviceMap;
 
 struct CSensorType {
-	string pathSensor, pathValue, name;
+	string path, name;
 	CWBControl::ControlType type;
 	CSensorType(const CConfigItem* cfg);
 };
