@@ -7,7 +7,7 @@ struct CTasmotaWBDevice {
 	CTasmotaWBDevice(string Name, string Description);
 	string_map params;
 	int relayCount, upgradeState;
-	bool isShutter;
+	bool isShutter, isOpentherm;
 	CWBDevice wbDevice;
 	time_t lastMessage;
 	string ip, OtaUrl;

@@ -21,9 +21,9 @@
   },
 
   "mqtt": {
-    "host": "localhost",
+    "host2": "localhost",
     "host1": "192.168.1.20",
-    "host2": "192.168.178.2",
+    "host": "192.168.178.2",
     "groups": ["tasmotas"]
   },
 

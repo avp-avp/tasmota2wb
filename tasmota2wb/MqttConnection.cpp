@@ -18,7 +18,7 @@
 const char g_tasmotaMinimal[] = "http://thehackbox.org/tasmota/release/tasmota-minimal.bin";
 
 CTasmotaWBDevice::CTasmotaWBDevice(string Name, string Description)
-	:wbDevice(Name, Description), relayCount(-1), isShutter(0), upgradeState(0	) {	
+	:wbDevice(Name, Description), relayCount(-1), isShutter(false), isOpentherm(false), upgradeState(0) {	
 };
 
 CSensorType::CSensorType(const CConfigItem* cfg){
@@ -111,6 +111,23 @@ void Parse(string str, Json::Value &obj){
 	stream>>obj;	
 }
 
+bool getByPath(const Json::Value &src, string path, Json::Value &retVal){
+	string_vector v;
+	SplitString(path, '/', v);
+
+	Json::Value obj_path = src;
+	for_each(string_vector, v, p) {
+		if(obj_path.isMember(*p)) {
+			obj_path = obj_path[*p];
+		} else {
+			retVal = Json::Value::null;
+			return false;
+		}
+	}
+	retVal = obj_path;
+	return true;
+}
+
 void CMqttConnection::on_message(const struct mosquitto_message *message)
 {
 	string payload;
@@ -182,22 +199,41 @@ void CMqttConnection::on_message(const struct mosquitto_message *message)
 			} else if(v[2]=="SENSOR") {
 				Json::Value obj; Parse(payload, obj);
 				bool needCreate = false;
+				Json::Value obj_path;
 
-				for_each_const(CSensorTypeList, m_SensorTypeList, sensor) {
-					string_vector v;
-					SplitString(sensor->path, '/', v);
-
-					Json::Value obj_path = obj;
-					for_each(string_vector, v, p) {
-						if(obj_path.isMember(*p)) {
-							obj_path = obj_path[*p];
-						} else {
-							obj_path = Json::Value::null;
-							break;
-						}
+				if (getByPath(obj, "OPENTHERM", obj_path)) {
+					if (!tasmotaDevice->isOpentherm) {
+						tasmotaDevice->isOpentherm = true;
+						tasmotaDevice->wbDevice.addControl("Central heating", CWBControl::Switch, false);
+						tasmotaDevice->wbDevice.addControl("Hot water",       CWBControl::Switch, true);
+						tasmotaDevice->wbDevice.addControl("Use diag",        CWBControl::Switch, true);
+						tasmotaDevice->wbDevice.addControl("CH target",       CWBControl::Range,  false);
+						tasmotaDevice->wbDevice.addControl("HW target",       CWBControl::Range,  false);
+						tasmotaDevice->wbDevice.enrichControl("CH target", "min", "5");
+						tasmotaDevice->wbDevice.enrichControl("HW target", "min", "5");
+						tasmotaDevice->wbDevice.enrichControl("CH target", "max", "60");
+						tasmotaDevice->wbDevice.enrichControl("HW target", "max", "60");
+						needCreate = true;
 					}
 
-					if (!obj_path.isNull()) {
+					if (getByPath(obj, "OPENTHERM/SLAVE/CH", obj_path)) 
+						tasmotaDevice->wbDevice.set("Central heating", bool(obj_path.asInt()));
+					
+					if (getByPath(obj, "OPENTHERM/settings", obj_path)) 
+						tasmotaDevice->wbDevice.set("Hot water", bool(obj_path.asInt()&2));
+					
+					if (getByPath(obj, "OPENTHERM/settings", obj_path)) 
+						tasmotaDevice->wbDevice.set("Use diag", bool(obj_path.asInt()&1));
+					
+					if (getByPath(obj, "OPENTHERM/BTMP/REQ", obj_path)) 
+						tasmotaDevice->wbDevice.set("CH target", obj_path.asInt());
+					
+					if (getByPath(obj, "OPENTHERM/HWTMP/REQ", obj_path)) 
+						tasmotaDevice->wbDevice.set("HW target", obj_path.asInt());					
+				}
+
+				for_each_const(CSensorTypeList, m_SensorTypeList, sensor) {
+					if (getByPath(obj, sensor->path, obj_path)) {
 						if(!tasmotaDevice->wbDevice.controlExists(sensor->name)) {
 							tasmotaDevice->wbDevice.addControl(sensor->name, sensor->type, true);
 							needCreate = true;
@@ -386,6 +422,7 @@ void CMqttConnection::on_message(const struct mosquitto_message *message)
 				SendUpdate();
 
 			}
+// From WB Device			
 		}  else if (v[0] == "" && v[1]=="devices") {
 			string device = v[2];
 			if (device=="tasmota") {
@@ -417,6 +454,12 @@ void CMqttConnection::on_message(const struct mosquitto_message *message)
 					} else if(v[4]=="Stop") {
 						sendCommand(device, "POWER2", "0");
 						sendCommand(device, "POWER1", "0");
+					} else if(v[4]=="CH target") {
+						sendCommand(device, "ot_tboiler", payload);
+					} else if(v[4]=="HW target") {
+						sendCommand(device, "ot_twater", payload);
+					} else if(v[4]=="Central heating") {
+						sendCommand(device, "ot_ch", payload);
 					}
 				}
 			}
@@ -425,6 +468,18 @@ void CMqttConnection::on_message(const struct mosquitto_message *message)
 	catch (CHaException ex)
 	{
 		m_Log->Printf(0, "Exception %s (%d)", ex.GetMsg().c_str(), ex.GetCode());
+	}	
+	catch (Json::RuntimeError ex)
+	{
+		m_Log->Printf(0, "Json::RuntimeError: %s", ex.what());
+	}		
+	catch (Json::LogicError ex)
+	{
+		m_Log->Printf(0, "Json::LogicError: %s", ex.what());
+	}		
+	catch (exception ex)
+	{
+		m_Log->Printf(0, "std::exception: %s", ex.what());
 	}	
 }
 
