@@ -402,10 +402,6 @@ void CMqttConnection::on_message(const struct mosquitto_message *message)
 							string cmd = dev->relayCount==1 ? "POWER" : string("POWER")+itoa(relay);
 							sendCommand(device, cmd, payload);
 						}
-					} else if (v[4][0]=='C') {
-						int relay = atoi(v[4].c_str()+1);
-						string cmd = dev->channelCount==1 ? "Channel" : "Channel"+itoa(relay);
-						sendCommand(device, cmd, payload);
 					} else if(v[4]=="Down") {
 						sendCommand(device, "POWER1", "0");
 						sendCommand(device, "POWER2", "1");
@@ -421,6 +417,10 @@ void CMqttConnection::on_message(const struct mosquitto_message *message)
 						sendCommand(device, "ot_twater", payload);
 					} else if(v[4]=="Central heating") {
 						sendCommand(device, "ot_ch", payload);
+					} else if (v[4][0]=='C') {
+						int relay = atoi(v[4].c_str()+1);
+						string cmd = dev->channelCount==1 ? "Channel" : "Channel"+itoa(relay);
+						sendCommand(device, cmd, payload);
 					}
 				}
 			}
