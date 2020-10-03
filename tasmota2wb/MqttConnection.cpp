@@ -15,10 +15,8 @@
 
 #include "MqttConnection.h"
 
-const char g_tasmotaMinimal[] = "http://thehackbox.org/tasmota/release/tasmota-minimal.bin";
-
 CTasmotaWBDevice::CTasmotaWBDevice(string Name, string Description)
-	:wbDevice(Name, Description), relayCount(-1), isShutter(false), isOpentherm(false), upgradeState(0) {	
+	:wbDevice(Name, Description), relayCount(-1), channelCount(-1), isShutter(false), isOpentherm(false) {	
 };
 
 CSensorType::CSensorType(const CConfigItem* cfg){
@@ -35,8 +33,6 @@ CMqttConnection::CMqttConnection(CConfigItem config, CLog* log)
 {
 	time(&m_lastIdle);
 	m_tasmotaDevice.addControl("log");
-	m_tasmotaDevice.addControl("ip");
-	m_tasmotaDevice.addControl("upgrade", CWBControl::Text, true);
 	m_Server = config.getStr("mqtt/host", false, "wirenboard");
 
 	CConfigItemList groupList;
@@ -169,23 +165,9 @@ void CMqttConnection::on_message(const struct mosquitto_message *message)
 		}
 
 		if (v[0] == "tele") {
-			if(v[2]=="LWT" && payload=="Online") 
-				queryDevice(deviceName);
-			else if (!tasmotaDevice)
-				return;
-			else if(v[2]=="STATE") {
-				if (tasmotaDevice->upgradeState==3) {
-					sendCommand(tasmotaDevice->wbDevice.getName(), "OtaUrl", tasmotaDevice->OtaUrl);
-					sendCommand(tasmotaDevice->wbDevice.getName(), "Upgrade", "1");
-					m_Log->Printf(0, "Upgrade to minimal finished");
-					tasmotaDevice->upgradeState=4; 
-				} else if (tasmotaDevice->upgradeState==5) {
-					m_Log->Printf(0, "Upgrade finished");
-					tasmotaDevice->upgradeState = 0;
-				}
-
+			if(v[2]=="STATE") {
 				Json::Value obj; Parse(payload, obj);
-				for(int i=0;i<5;i++) {
+				for(int i=0;i<6;i++) {
 					string controlName = string("K")+itoa(i+1);
 					string powerName = tasmotaDevice->relayCount==1 ? "POWER" : string("POWER")+itoa(i+1);
 					string val = obj[powerName].asString();
@@ -241,11 +223,10 @@ void CMqttConnection::on_message(const struct mosquitto_message *message)
 
 						if(obj_path.isInt())
 							tasmotaDevice->wbDevice.set(sensor->name, obj_path.asInt());
-						if(obj_path.isDouble()) 
+						if(obj_path.isDouble() || obj_path.isConvertibleTo(Json::ValueType::realValue)) 
 							tasmotaDevice->wbDevice.set(sensor->name, obj_path.asDouble());
-						else
-							tasmotaDevice->wbDevice.set(sensor->name, obj_path.asString());
-						
+						else if(obj_path.isString() || obj_path.isConvertibleTo(Json::ValueType::stringValue)) 
+							tasmotaDevice->wbDevice.set(sensor->name, obj_path.asString());						
 					}
 				}
 				if (needCreate) CreateDevice(tasmotaDevice);
@@ -274,15 +255,6 @@ void CMqttConnection::on_message(const struct mosquitto_message *message)
 					string Module = jsonPayload["Module"].asString();
 					string Version = jsonPayload["Version"].asString();
 					m_Log->Printf(0, "M:%s V:%s", Module.c_str(), Version.c_str());
-
-					if(Version.find("(minimal)")!=Version.npos) {
-						if (tasmotaDevice->OtaUrl!="") 
-							sendCommand(tasmotaDevice->wbDevice.getName(), "OtaUrl", tasmotaDevice->OtaUrl);
-						else
-							sendCommand(tasmotaDevice->wbDevice.getName(), "OtaUrl", "1");
-						sendCommand(tasmotaDevice->wbDevice.getName(), "Upgrade", "1");
-						tasmotaDevice->upgradeState = 4;
-					}
 				}
 			}
 		} else if (v[0] == "stat" && (v[2].find("STATUS")==0 || v[2]=="RESULT") && tasmotaDevice) {
@@ -292,34 +264,6 @@ void CMqttConnection::on_message(const struct mosquitto_message *message)
 			if (names.size()==1 && (names[0].find("Status")==0 || names[0]=="SetOption80")) {
 				tasmotaDevice->params[names[0]] = payload;
 			} 
-			else if (names[0]=="OtaUrl") {
-				string OtaUrl = jsonPayload[names[0]].asString();
-				if (OtaUrl.find("minimal")==OtaUrl.npos && tasmotaDevice->upgradeState==1)
-				{
-					tasmotaDevice->OtaUrl = OtaUrl;
-					sendCommand(tasmotaDevice->wbDevice.getName(), "OtaUrl", g_tasmotaMinimal);
-				} 
-				sendCommand(tasmotaDevice->wbDevice.getName(), "Upgrade", "1");
-				tasmotaDevice->upgradeState = 2;
-			} 
-			
-			if (names[0]=="StatusFWR" && jsonPayload[names[0]].isMember("Version")) {
-				string Version = jsonPayload[names[0]]["Version"].asString();
-				if(Version.find("(minimal)")!=Version.npos) {
-					if (tasmotaDevice->upgradeState!=4) {
-						if (tasmotaDevice->OtaUrl!="") 
-							sendCommand(tasmotaDevice->wbDevice.getName(), "OtaUrl", tasmotaDevice->OtaUrl);
-						else
-							sendCommand(tasmotaDevice->wbDevice.getName(), "OtaUrl", "1");
-						sendCommand(tasmotaDevice->wbDevice.getName(), "Upgrade", "1");
-						tasmotaDevice->upgradeState = 4;
-					}
-				} else if (tasmotaDevice->upgradeState) {
-					tasmotaDevice->upgradeState = 0; 
-					m_Log->Printf(0, "Upgrade finished. Current version: %s", Version.c_str());
-				}
-			}
-			
 
 			if (tasmotaDevice->wbDevice.getControls()->size()<2 &&
 					tasmotaDevice->params.find("Status")!=tasmotaDevice->params.end() &&
@@ -344,7 +288,18 @@ void CMqttConnection::on_message(const struct mosquitto_message *message)
 				if (status11.isMember("StatusSTS")) {
 					status11 = status11["StatusSTS"];
 					tasmotaDevice->relayCount = countEntity("POWER", status11);
-					int ChannelCount = countEntity("Channel", status11);
+					tasmotaDevice->channelCount = countEntity("Channel", status11);
+
+					if (tasmotaDevice->channelCount>0) { // Dimmer
+						for (int i=0;i<tasmotaDevice->channelCount;i++) {
+							string tsmCtl = tasmotaDevice->relayCount==1 ? "Channel" : "Channel"+itoa(i+1);
+							string wbCtl = "C"+itoa(i+1);
+							tasmotaDevice->wbDevice.addControl(wbCtl, CWBControl::Range, false);
+							int val = status11[tsmCtl].asInt();
+							tasmotaDevice->wbDevice.set(wbCtl, val);
+							m_Log->Printf(4, "Add %s with %d", (deviceName+"/"+wbCtl).c_str(), val);
+						}
+					}
 
 					for (int i=0;i<tasmotaDevice->relayCount;i++) {
 						string tsmCtl = tasmotaDevice->relayCount==1 ? "POWER" : "POWER"+itoa(i+1);
@@ -379,14 +334,12 @@ void CMqttConnection::on_message(const struct mosquitto_message *message)
 				subscribe(topic.c_str());
 				tasmotaDevice->params.empty();
 			} 
-		} else if (v[0] == "stat" && v[2].find("UPGRADE")==0 && tasmotaDevice && tasmotaDevice->upgradeState==2) {
-			tasmotaDevice->upgradeState==3;
 		}
 
 		if (v[0] == "tele") {
 			if (v[2]=="LWT") {
 				if(payload=="Online") { // Device online
-					if (tasmotaDevice) { 
+					if (tasmotaDevice && tasmotaDevice->wbDevice.getControls()->size()>1) { 
 						sendCommand(deviceName, "status");
 						if (tasmotaDevice->wbDevice.getS("ip")=="Offline") {
 							tasmotaDevice->wbDevice.set("ip", tasmotaDevice->ip);
@@ -419,6 +372,16 @@ void CMqttConnection::on_message(const struct mosquitto_message *message)
 						tasmotaDevice->wbDevice.set(wbCtl, power?"1":"0");
 					}
 				}
+
+				for(int i=0;i<tasmotaDevice->channelCount;i++) {
+					string wbCtl = "C"+itoa(i+1);
+					string tsmCtl = tasmotaDevice->channelCount==1 ? "Channel" : "Channel"+itoa(i+1);
+					if (obj.isMember(tsmCtl) && tasmotaDevice->wbDevice.controlExists(wbCtl)) {
+				 		int val = obj[tsmCtl].asInt();
+						m_Log->Printf(4, "Copy %s.%s=%d to %s", deviceName.c_str(), tsmCtl.c_str(), val, wbCtl.c_str());
+						tasmotaDevice->wbDevice.set(wbCtl, val);
+					} else break;
+				}
 				SendUpdate();
 
 			}
@@ -427,12 +390,6 @@ void CMqttConnection::on_message(const struct mosquitto_message *message)
 			string device = v[2];
 			if (device=="tasmota") {
 				string control = v[4];
-
-				if (control=="upgrade" && m_Devices.find(payload)!=m_Devices.end()) {
-					CTasmotaWBDevice *dev= m_Devices[payload]; 
-					sendCommand(dev->wbDevice.getName(), "OtaUrl", "");
-					dev->upgradeState = 1;
-				}
 			}
  			else if (m_Devices.find(device)!=m_Devices.end()) {
 				CTasmotaWBDevice *dev= m_Devices[device]; 
@@ -440,11 +397,15 @@ void CMqttConnection::on_message(const struct mosquitto_message *message)
 				{
 					if (v[4][0]=='K') {
 						int relay = atoi(v[4].c_str()+1);
-						if (relay>(dev->isShutter?2:0) && relay<5)
+						if (relay>(dev->isShutter?2:0) && relay<=5)
 						{
 							string cmd = dev->relayCount==1 ? "POWER" : string("POWER")+itoa(relay);
 							sendCommand(device, cmd, payload);
 						}
+					} else if (v[4][0]=='C') {
+						int relay = atoi(v[4].c_str()+1);
+						string cmd = dev->channelCount==1 ? "Channel" : "Channel"+itoa(relay);
+						sendCommand(device, cmd, payload);
 					} else if(v[4]=="Down") {
 						sendCommand(device, "POWER1", "0");
 						sendCommand(device, "POWER2", "1");
@@ -572,5 +533,5 @@ void CMqttConnection::queryDevice(string deviceName){
 	} 
 
 	publish("cmnd/"+deviceName+"/Status", "0");
-	publish("cmnd/"+deviceName+"/SetOption80", "0");
+	publish("cmnd/"+deviceName+"/SetOption80", "");
 }
