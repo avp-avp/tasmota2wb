@@ -5,7 +5,7 @@
       {"path":"SI7021/Humidity",       "type":"rel_humidity", "name":"humidity"},
       {"path":"DS18B20-1/Temperature", "type":"temperature",  "name":"home"},
       {"path":"DS18B20-2/Temperature", "type":"temperature",  "name":"heater"},
-      {"path":"ANALOG",                "type":"value",        "name":"analog"},
+      {"path":"ANALOG/A0",             "type":"value",        "name":"analog"},
       {"path":"OPENTHERM/settings",    "type":"value",        "name":"settings"},
       {"path":"OPENTHERM/FLM",         "type":"value",        "name":"flm"},
       {"path":"OPENTHERM/TB",          "type":"temperature",  "name":"tb"},
@@ -31,7 +31,7 @@
     "log": [
       {
         "name": "Main",
-        "file_name": "./tasmota2wb.log",
+        "file_name": "/run/tasmota2wb.log",
         "console_level": 5,
         "file_level": 3,
         "log_time": "yes"
