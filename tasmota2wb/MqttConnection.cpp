@@ -17,7 +17,7 @@
 
 CTasmotaWBDevice::CTasmotaWBDevice(string Name, string Description)
 	:wbDevice(Name, Description), relayCount(-1), channelCount(-1), isShutter(false), isOpentherm(false),
-	b_NeedCreate(true) {	
+	b_NeedCreate(true), lastStatusRequest(0) {	
 };
 
 CSensorType::CSensorType(const CConfigItem* cfg){
@@ -165,6 +165,9 @@ void CMqttConnection::on_message(const struct mosquitto_message *message)
 				if (tasmotaDevice->wbDevice.getS("ip")=="Offline"){
 					tasmotaDevice->wbDevice.set("ip", tasmotaDevice->ip);
 					SendUpdate();
+				}
+				if (tasmotaDevice->b_NeedCreate && tasmotaDevice->lastStatusRequest+60<time(NULL)) {
+					queryDevice(deviceName);
 				}
 			}
 		}
@@ -540,15 +543,19 @@ void CMqttConnection::onIdle(){
 }
 
 void CMqttConnection::queryDevice(string deviceName){
+	CTasmotaWBDevice *tasmotaDevice = NULL;
 	if (m_Devices.find(deviceName)==m_Devices.end())
 	{
-		CTasmotaWBDevice *tasmotaDevice = new CTasmotaWBDevice(deviceName, deviceName); 
+		tasmotaDevice = new CTasmotaWBDevice(deviceName, deviceName); 
 		tasmotaDevice->wbDevice.addControl("ip"); 
 		tasmotaDevice->wbDevice.set("ip", "Unknown");
 		m_Devices[deviceName] = tasmotaDevice;			
 		m_Log->Printf(2, "New device %s. Query status.", deviceName.c_str());
-	} 
+	} else {
+		tasmotaDevice = m_Devices[deviceName];
+	}
 
 	publish("cmnd/"+deviceName+"/Status", "0");
 	publish("cmnd/"+deviceName+"/SetOption80", "");
+	time(&tasmotaDevice->lastStatusRequest);
 }

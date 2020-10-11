@@ -9,7 +9,7 @@ struct CTasmotaWBDevice {
 	int relayCount, channelCount;
 	bool isShutter, isOpentherm, b_NeedCreate;
 	CWBDevice wbDevice;
-	time_t lastMessage;
+	time_t lastMessage, lastStatusRequest;
 	string ip;
 };
 typedef map<string, CTasmotaWBDevice*> CTasmotaWBDeviceMap;
