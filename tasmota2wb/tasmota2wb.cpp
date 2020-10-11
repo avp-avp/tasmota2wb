@@ -25,6 +25,7 @@ int main(int argc, char* argv[])
 
 	bool bDaemon = false, bDebug = false;
 	string serverName;
+	string logName = "";
 	string mqttHost = "wirenboard";
 	string configName = "tasmota2wb.json";
 	
@@ -34,7 +35,7 @@ int main(int argc, char* argv[])
 	//~ int digit_optind = 0;
 	//~ int aopt = 0, bopt = 0;
 	//~ char *copt = 0, *dopt = 0;
-	while ((c = getopt(argc, argv, "dc:s:")) != -1) {
+	while ((c = getopt(argc, argv, "dc:s:l:")) != -1) {
 		//~ int this_option_optind = optind ? optind : 1;
 		switch (c) {
 		case 'c':
@@ -42,6 +43,9 @@ int main(int argc, char* argv[])
 			break;
 		case 's':
 			serverName = optarg;
+			break;
+		case 'l':
+			logName = optarg;
 			break;
 		case 'd':
 			bDebug = true;
@@ -69,8 +73,9 @@ int main(int argc, char* argv[])
 
 		CLog* log = CLog::Default();
 		if (bDebug) log->SetConsoleLogLevel(50);
+		if (logName!="") log->Open(logName.c_str());
 
-		CMqttConnection mqttConn(config.getRoot(), log);
+		CMqttConnection mqttConn(config.getRoot(), log, serverName);
 
 		while (!mqttConn.isStopped()) {
 			Sleep(1000);

@@ -7,7 +7,7 @@ struct CTasmotaWBDevice {
 	CTasmotaWBDevice(string Name, string Description);
 	string_map params;
 	int relayCount, channelCount;
-	bool isShutter, isOpentherm;
+	bool isShutter, isOpentherm, b_NeedCreate;
 	CWBDevice wbDevice;
 	time_t lastMessage;
 	string ip;
@@ -35,7 +35,7 @@ class CMqttConnection
 	time_t m_lastIdle;
 
 public:
-	CMqttConnection(CConfigItem config, CLog* log);
+	CMqttConnection(CConfigItem config, CLog* log, string mqttServer);
 	~CMqttConnection();
 	void NewMessage(string message);
 	bool isStopped() {return m_bStop;};

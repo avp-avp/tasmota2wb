@@ -16,7 +16,8 @@
 #include "MqttConnection.h"
 
 CTasmotaWBDevice::CTasmotaWBDevice(string Name, string Description)
-	:wbDevice(Name, Description), relayCount(-1), channelCount(-1), isShutter(false), isOpentherm(false) {	
+	:wbDevice(Name, Description), relayCount(-1), channelCount(-1), isShutter(false), isOpentherm(false),
+	b_NeedCreate(true) {	
 };
 
 CSensorType::CSensorType(const CConfigItem* cfg){
@@ -27,13 +28,17 @@ CSensorType::CSensorType(const CConfigItem* cfg){
 }
 
 
-CMqttConnection::CMqttConnection(CConfigItem config, CLog* log)
+CMqttConnection::CMqttConnection(CConfigItem config, CLog* log, string mqttServer)
 	:m_isConnected(false), mosquittopp(PACKAGE_STRING __TIME__), m_bStop(false),
 	m_tasmotaDevice("tasmota", "Tasmota")
 {
 	time(&m_lastIdle);
 	m_tasmotaDevice.addControl("log");
-	m_Server = config.getStr("mqtt/host", false, "wirenboard");
+
+	if (mqttServer.length()>0)
+		m_Server = mqttServer;
+	else
+		m_Server = config.getStr("mqtt/host", false, "wirenboard");
 
 	CConfigItemList groupList;
 	config.getList("mqtt/groups", groupList);
@@ -54,7 +59,7 @@ CMqttConnection::CMqttConnection(CConfigItem config, CLog* log)
 	if (m_Groups.size() == 0) m_Groups.push_back("tasmotas");
 
 	m_Log = log;
-	m_Log->Printf(0, "Starting tasmota2wb");
+	m_Log->Printf(0, "Starting tasmota2wb. Connect to %s.", m_Server.c_str());
 
 	connect(m_Server.c_str());
 	loop_start();
@@ -265,7 +270,7 @@ void CMqttConnection::on_message(const struct mosquitto_message *message)
 				tasmotaDevice->params[names[0]] = payload;
 			} 
 
-			if (tasmotaDevice->wbDevice.getControls()->size()<2 &&
+			if (tasmotaDevice->b_NeedCreate &&
 					tasmotaDevice->params.find("Status")!=tasmotaDevice->params.end() &&
 					tasmotaDevice->params.find("SetOption80")!=tasmotaDevice->params.end() &&
 					tasmotaDevice->params.find("StatusSTS")!=tasmotaDevice->params.end() && 
@@ -326,8 +331,14 @@ void CMqttConnection::on_message(const struct mosquitto_message *message)
 					tasmotaDevice->wbDevice.set("ip", tasmotaDevice->ip);		
 				}
 				
-				m_Log->Printf(0, "Create %s(%s). %d relays%s", deviceName.c_str(), desc.c_str(), tasmotaDevice->relayCount, tasmotaDevice->isShutter?" with shuter":"");
+				string params;
+				if (tasmotaDevice->relayCount>0) params+="Relays: "+itoa(tasmotaDevice->relayCount)+". ";
+				if (tasmotaDevice->channelCount>0) params+="Channels: "+itoa(tasmotaDevice->channelCount)+". ";
+				if (tasmotaDevice->isShutter) params+="Has shutter. ";
+				if (tasmotaDevice->isOpentherm) params+="Has opentherm. ";
+				m_Log->Printf(0, "Create %s(%s). %s", deviceName.c_str(), desc.c_str(), params.c_str());
 				CreateDevice(tasmotaDevice);
+				tasmotaDevice->b_NeedCreate = false;
 				SendUpdate();
 				string topic = "/devices/"+deviceName+"/controls/+/on"; 
 				m_Log->Printf(5, "subscribe to %s", topic.c_str());
@@ -516,7 +527,8 @@ void CMqttConnection::onIdle(){
 	{
 		if (dev->second && 
 				dev->second->wbDevice.getS("ip")!="Offline" && 
-				dev->second->lastMessage+300<time(NULL))
+				dev->second->lastMessage+300<time(NULL)
+		   )
 			dev->second->wbDevice.set("ip", "Offline");
 	}
 
@@ -530,6 +542,7 @@ void CMqttConnection::queryDevice(string deviceName){
 		tasmotaDevice->wbDevice.addControl("ip"); 
 		tasmotaDevice->wbDevice.set("ip", "Unknown");
 		m_Devices[deviceName] = tasmotaDevice;			
+		m_Log->Printf(2, "New device %s. Query status.", deviceName.c_str());
 	} 
 
 	publish("cmnd/"+deviceName+"/Status", "0");
