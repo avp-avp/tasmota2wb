@@ -234,8 +234,11 @@ void CMqttConnection::on_message(const struct mosquitto_message *message)
 							tasmotaDevice->wbDevice.set(sensor->name, obj_path.asString());						
 					}
 				}
-				if (needCreate) CreateDevice(tasmotaDevice);
-				SendUpdate();
+				if (!tasmotaDevice->b_NeedCreate) {
+					if (needCreate) 
+						CreateDevice(tasmotaDevice);
+					SendUpdate();
+				}
 				/*
 				for_each_const(CSensorTypeList, m_SensorTypeList, sensor) {
 					if(obj.isMember(sensor->pathSensor) && obj[sensor->pathSensor].isMember(sensor->pathValue) && tasmotaDevice) {
@@ -331,12 +334,6 @@ void CMqttConnection::on_message(const struct mosquitto_message *message)
 					tasmotaDevice->wbDevice.set("ip", tasmotaDevice->ip);		
 				}
 				
-				string params;
-				if (tasmotaDevice->relayCount>0) params+="Relays: "+itoa(tasmotaDevice->relayCount)+". ";
-				if (tasmotaDevice->channelCount>0) params+="Channels: "+itoa(tasmotaDevice->channelCount)+". ";
-				if (tasmotaDevice->isShutter) params+="Has shutter. ";
-				if (tasmotaDevice->isOpentherm) params+="Has opentherm. ";
-				m_Log->Printf(0, "Create %s(%s). %s", deviceName.c_str(), desc.c_str(), params.c_str());
 				CreateDevice(tasmotaDevice);
 				tasmotaDevice->b_NeedCreate = false;
 				SendUpdate();
@@ -468,6 +465,13 @@ void CMqttConnection::on_error()
 void CMqttConnection::CreateDevice(CTasmotaWBDevice* dev)
 {
 	m_Devices[dev->wbDevice.getName()] = dev;
+	string params;
+	if (dev->relayCount>0) params+="Relays: "+itoa(dev->relayCount)+". ";
+	if (dev->channelCount>0) params+="Channels: "+itoa(dev->channelCount)+". ";
+	if (dev->isShutter) params+="Has shutter. ";
+	if (dev->isOpentherm) params+="Has opentherm. ";
+	
+	m_Log->Printf(0, "Create %s(%s). %s", dev->wbDevice.getName().c_str(), dev->wbDevice.getDescription().c_str(), params.c_str());
 	CreateDevice(&dev->wbDevice);
 }
 
