@@ -265,7 +265,7 @@ void CMqttConnection::on_message(const struct mosquitto_message *message)
 				if (jsonPayload.isMember("Module") && jsonPayload.isMember("Version")) {
 					string Module = jsonPayload["Module"].asString();
 					string Version = jsonPayload["Version"].asString();
-					m_Log->Printf(0, "M:%s V:%s", Module.c_str(), Version.c_str());
+					m_Log->Printf(0, "%s M:%s V:%s", deviceName.c_str(), Module.c_str(), Version.c_str());
 				}
 			}
 		} else if (v[0] == "stat" && (v[2].find("STATUS")==0 || v[2]=="RESULT") && tasmotaDevice) {
