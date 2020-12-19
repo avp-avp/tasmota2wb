@@ -16,7 +16,9 @@
       {"path":"OPENTHERM/SLAVE/DIAG",  "type":"switch",       "name":"diag"},
       {"path":"OPENTHERM/SLAVE/FAULT", "type":"value",        "name":"fault"},
       {"path":"OPENTHERM/BTMP/REQ",    "type":"temperature",  "name":"target"},
-      {"path":"OPENTHERM/BTMP/ACT",    "type":"temperature",  "name":"actual"}
+      {"path":"OPENTHERM/BTMP/ACT",    "type":"temperature",  "name":"actual"},
+      {"path":"OPENTHERM/ASFF/FC",     "type":"value",        "name":"fault_code"},
+      {"path":"OPENTHERM/ASFF/OFC",    "type":"value",        "name":"oem_fault_code"}
     ]
   },
 
