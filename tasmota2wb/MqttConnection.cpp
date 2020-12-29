@@ -304,11 +304,15 @@ void CMqttConnection::on_message(const struct mosquitto_message *message)
 					if (tasmotaDevice->channelCount>0) { // Dimmer
 						for (int i=0;i<tasmotaDevice->channelCount;i++) {
 							string tsmCtl = tasmotaDevice->relayCount==1 ? "Channel" : "Channel"+itoa(i+1);
-							string wbCtl = "C"+itoa(i+1);
-							tasmotaDevice->wbDevice.addControl(wbCtl, CWBControl::Range, false);
-							int val = status11[tsmCtl].asInt();
-							tasmotaDevice->wbDevice.set(wbCtl, val);
-							m_Log->Printf(4, "Add %s with %d", (deviceName+"/"+wbCtl).c_str(), val);
+							if (status11[tsmCtl].isArray()) {
+								m_Log->Printf(4, "Add %s is Array", (deviceName+"/"+tsmCtl).c_str());
+							} else {
+								string wbCtl = "C"+itoa(i+1);
+								tasmotaDevice->wbDevice.addControl(wbCtl, CWBControl::Range, false);
+								int val = status11[tsmCtl].asInt();
+								tasmotaDevice->wbDevice.set(wbCtl, val);
+								m_Log->Printf(4, "Add %s with %d", (deviceName+"/"+wbCtl).c_str(), val);
+							}
 						}
 					}
 
