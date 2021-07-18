@@ -3,8 +3,9 @@
     "sensors": [
       {"path":"SI7021/Temperature",    "type":"temperature",  "name":"temperature"},
       {"path":"SI7021/Humidity",       "type":"rel_humidity", "name":"humidity"},
-      {"path":"DS18B20-1/Temperature", "type":"temperature",  "name":"home"},
-      {"path":"DS18B20-2/Temperature", "type":"temperature",  "name":"heater"},
+      {"path":"DS18B20-1/Temperature", "type":"temperature",  "name":"t1"},
+      {"path":"DS18B20-2/Temperature", "type":"temperature",  "name":"t2"},
+      {"path":"DS18B20-3/Temperature", "type":"temperature",  "name":"t3"},
       {"path":"ANALOG/A0",             "type":"value",        "name":"analog"},
       {"path":"OPENTHERM/settings",    "type":"value",        "name":"settings"},
       {"path":"OPENTHERM/FLM",         "type":"value",        "name":"flm"},
@@ -24,8 +25,6 @@
 
   "mqtt": {
     "host": "localhost",
-    "host1": "192.168.1.20",
-    "host2": "192.168.178.2",
     "groups": ["tasmotas"]
   },
 
