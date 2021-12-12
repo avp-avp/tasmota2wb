@@ -19,7 +19,14 @@
       {"path":"OPENTHERM/BTMP/REQ",    "type":"temperature",  "name":"target"},
       {"path":"OPENTHERM/BTMP/ACT",    "type":"temperature",  "name":"actual"},
       {"path":"OPENTHERM/ASFF/FC",     "type":"value",        "name":"fault_code"},
-      {"path":"OPENTHERM/ASFF/OFC",    "type":"value",        "name":"oem_fault_code"}
+      {"path":"OPENTHERM/ASFF/OFC",    "type":"value",        "name":"oem_fault_code"},
+
+      {"path":"ENERGY/Voltage",        "type":"voltage",      "name":"Voltage"},
+      {"path":"ENERGY/Frequency",      "type":"value",        "name":"Frequency"},
+      {"path":"ENERGY/Power",          "type":"power",        "name":"Power"},
+      
+      {"path":"ESP32/Temperature",     "type":"temperature",  "name":"ESP Temp"}
+      
     ]
   },
 

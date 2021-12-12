@@ -224,17 +224,32 @@ void CMqttConnection::on_message(const struct mosquitto_message *message)
 
 				for_each_const(CSensorTypeList, m_SensorTypeList, sensor) {
 					if (getByPath(obj, sensor->path, obj_path)) {
-						if(!tasmotaDevice->wbDevice.controlExists(sensor->name)) {
-							tasmotaDevice->wbDevice.addControl(sensor->name, sensor->type, true);
-							needCreate = true;
+						int size = 1;
+						Json::Value array;
+						if(obj_path.isArray()) {
+							size = obj_path.size();
+							array = obj_path;
 						}
 
-						if(obj_path.isInt())
-							tasmotaDevice->wbDevice.set(sensor->name, obj_path.asInt());
-						if(obj_path.isDouble() || obj_path.isConvertibleTo(Json::ValueType::realValue)) 
-							tasmotaDevice->wbDevice.set(sensor->name, obj_path.asDouble());
-						else if(obj_path.isString() || obj_path.isConvertibleTo(Json::ValueType::stringValue)) 
-							tasmotaDevice->wbDevice.set(sensor->name, obj_path.asString());						
+						for (int i=0;i<size;i++) {
+							string sensorName = sensor->name;
+							if (size>1) {
+								obj_path = array[i];
+								sensorName += itoa(i+1);
+							}
+
+							if(!tasmotaDevice->wbDevice.controlExists(sensorName)) {
+								tasmotaDevice->wbDevice.addControl(sensorName, sensor->type, true);
+								needCreate = true;
+							}
+
+							if(obj_path.isInt())
+								tasmotaDevice->wbDevice.set(sensorName, obj_path.asInt());
+							if(obj_path.isDouble() || obj_path.isConvertibleTo(Json::ValueType::realValue)) 
+								tasmotaDevice->wbDevice.set(sensorName, obj_path.asDouble());
+							else if(obj_path.isString() || obj_path.isConvertibleTo(Json::ValueType::stringValue)) 
+								tasmotaDevice->wbDevice.set(sensorName, obj_path.asString());						
+						}
 					}
 				}
 				if (!tasmotaDevice->b_NeedCreate) {

@@ -1,0 +1,59 @@
+# Compiled Object files
+*.slo
+*.lo
+*.o
+*.obj
+
+# Precompiled Headers
+*.gch
+*.pch
+
+# Compiled Dynamic libraries
+*.so
+*.dylib
+*.dll
+
+# Fortran module files
+*.mod
+*.smod
+
+# Compiled Static libraries
+*.lai
+*.la
+*.a
+*.lib
+
+# Executables
+*.exe
+*.out
+*.app
+
+Makefile
+configure*
+
+#VC++
+*.vcxproj.filters
+*.vcxproj
+*.vcproj
+*.cd
+
+*.Plo
+*.Po
+*.in
+*.m4
+*.log
+
+tasmota2wb
+libtool
+missing
+config.guess
+config.status
+config.sub
+compile
+depcomp
+haconfig.inc*
+ar-lib
+install-sh
+ltmain.sh
+stamp-h1
+requests
