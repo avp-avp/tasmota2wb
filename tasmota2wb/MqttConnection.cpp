@@ -25,6 +25,7 @@ CSensorType::CSensorType(const CConfigItem* cfg){
 	string_vector v; SplitString(path, '/', v);
 	name = cfg->getStr("dynamic_name", false);
 	
+	dynamicName = false;
 	if (name.length()) dynamicName = true;
 	else name = cfg->getStr("name", false);
 	
