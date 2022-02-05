@@ -3,9 +3,9 @@
     "sensors": [
       {"path":"SI7021/Temperature",    "type":"temperature",  "name":"temperature"},
       {"path":"SI7021/Humidity",       "type":"rel_humidity", "name":"humidity"},
-      {"path":"DS18B20-1/Temperature", "type":"temperature",  "name":"t1"},
-      {"path":"DS18B20-2/Temperature", "type":"temperature",  "name":"t2"},
-      {"path":"DS18B20-3/Temperature", "type":"temperature",  "name":"t3"},
+      {"path":"DS18B20-1/Temperature", "type":"temperature",  "dynamic_name":"DS18B20-1/Id"},
+      {"path":"DS18B20-2/Temperature", "type":"temperature",  "dynamic_name":"DS18B20-2/Id"},
+      {"path":"DS18B20-3/Temperature", "type":"temperature",  "dynamic_name":"DS18B20-3/Id"},
       {"path":"ANALOG/A0",             "type":"value",        "name":"analog"},
       {"path":"OPENTHERM/settings",    "type":"value",        "name":"settings"},
       {"path":"OPENTHERM/FLM",         "type":"value",        "name":"flm"},

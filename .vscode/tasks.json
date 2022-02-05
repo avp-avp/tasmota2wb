@@ -20,5 +20,13 @@
         ],
         "group":  "none"
       },
+      {
+        "label": "Configure brew",
+        "type": "shell",
+        "command": "./configure CXXFLAGS=\"-I/opt/homebrew/Cellar/jsoncpp/1.9.5/include -I/opt/homebrew/Cellar/mosquitto/2.0.14/include/\" LDFLAGS=\"-L/opt/homebrew/Cellar/jsoncpp/1.9.5/lib -L/opt/homebrew/Cellar/mosquitto/2.0.14/lib\"",
+        "args": [
+        ],
+        "group":  "none"
+      },
     ]
   }

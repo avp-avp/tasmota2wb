@@ -23,7 +23,11 @@ CTasmotaWBDevice::CTasmotaWBDevice(string Name, string Description)
 CSensorType::CSensorType(const CConfigItem* cfg){
 	path = cfg->getStr("path");
 	string_vector v; SplitString(path, '/', v);
-	name = cfg->getStr("name");
+	name = cfg->getStr("dynamic_name", false);
+	
+	if (name.length()) dynamicName = true;
+	else name = cfg->getStr("name", false);
+	
 	type = CWBControl::getType(cfg->getStr("type"));
 }
 
@@ -233,6 +237,12 @@ void CMqttConnection::on_message(const struct mosquitto_message *message)
 
 						for (int i=0;i<size;i++) {
 							string sensorName = sensor->name;
+							if (sensor->dynamicName) {
+								Json::Value dynamicName;
+								getByPath(obj, sensor->name, dynamicName);
+								sensorName = dynamicName.asString();
+							}
+
 							if (size>1) {
 								obj_path = array[i];
 								sensorName += itoa(i+1);

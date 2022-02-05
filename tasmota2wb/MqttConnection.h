@@ -16,6 +16,7 @@ typedef map<string, CTasmotaWBDevice*> CTasmotaWBDeviceMap;
 
 struct CSensorType {
 	string path, name;
+	bool dynamicName;
 	CWBControl::ControlType type;
 	CSensorType(const CConfigItem* cfg);
 };
