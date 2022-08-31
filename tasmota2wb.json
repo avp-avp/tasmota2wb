@@ -25,7 +25,8 @@
       {"path":"ENERGY/Frequency",      "type":"value",        "name":"Frequency"},
       {"path":"ENERGY/Power",          "type":"power",        "name":"Power"},
       
-      {"path":"ESP32/Temperature",     "type":"temperature",  "name":"ESP Temp"}
+      {"path":"ESP32/Temperature",     "type":"temperature",  "name":"ESP Temp"},
+      {"path":"ANALOG/Temperature",    "type":"temperature",  "name":"Temperature"}
       
     ]
   },
