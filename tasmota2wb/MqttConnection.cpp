@@ -398,6 +398,7 @@ void CMqttConnection::on_message(const struct mosquitto_message *message)
 					tasmotaDevice->wbDevice.set("ip", "Offline");
 					SendUpdate();
 				}
+			}	
  		} else if (v[0] == "stat") {
 			if (v[2]=="STATUS") {
 				if (m_Devices.find(deviceName)!=m_Devices.end()) {
