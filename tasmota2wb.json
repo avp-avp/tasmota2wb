@@ -7,6 +7,7 @@
       {"path":"DS18B20-2/Temperature", "type":"temperature",  "dynamic_name":"DS18B20-2/Id"},
       {"path":"DS18B20-3/Temperature", "type":"temperature",  "dynamic_name":"DS18B20-3/Id"},
       {"path":"ANALOG/A0",             "type":"value",        "name":"analog"},
+      {"path":"ANALOG/Temperature",    "type":"temperature",  "name":"Temperature"},
       {"path":"OPENTHERM/settings",    "type":"value",        "name":"settings"},
       {"path":"OPENTHERM/FLM",         "type":"value",        "name":"flm"},
       {"path":"OPENTHERM/TB",          "type":"temperature",  "name":"tb"},
@@ -26,8 +27,11 @@
       {"path":"ENERGY/Power",          "type":"power",        "name":"Power"},
       
       {"path":"ESP32/Temperature",     "type":"temperature",  "name":"ESP Temp"},
-      {"path":"ANALOG/Temperature",    "type":"temperature",  "name":"Temperature"}
-      
+
+      {"path":"Thermostat0/ThermostatModeSet", "type":"switch",      "name":"Thermostat Mode"},
+      {"path":"Thermostat0/TempTargetSet",     "type":"temperature", "name":"Target"},
+      {"path":"Thermostat0/CtrDutyCycleRead",  "type":"value",       "name":"DutyCycle"}   
+           
     ]
   },
 
@@ -41,7 +45,7 @@
       {
         "name": "Main",
         "file_name": "/run/tasmota2wb.log",
-        "console_level": 1,
+        "console_level": 31,
         "file_level": 3,
         "log_time": "yes"
       }

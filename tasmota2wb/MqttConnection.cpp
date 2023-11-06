@@ -66,6 +66,7 @@ CMqttConnection::CMqttConnection(CConfigItem config, CLog* log, string mqttServe
 	m_Log = log;
 	m_Log->Printf(0, "Starting tasmota2wb. Connect to %s.", m_Server.c_str());
 
+//	username_pw_set("DVES_USER", "DVES_PASS");
 	connect(m_Server.c_str());
 	loop_start();
 }
@@ -263,6 +264,7 @@ void CMqttConnection::on_message(const struct mosquitto_message *message)
 						}
 					}
 				}
+
 				if (!tasmotaDevice->b_NeedCreate) {
 					if (needCreate) 
 						CreateDevice(tasmotaDevice);
@@ -367,6 +369,7 @@ void CMqttConnection::on_message(const struct mosquitto_message *message)
 					tasmotaDevice->wbDevice.set("ip", tasmotaDevice->ip);		
 				}
 				
+				tasmotaDevice->wbDevice.addControl("lastSeen", CWBControl::Generic, true);
 				CreateDevice(tasmotaDevice);
 				tasmotaDevice->b_NeedCreate = false;
 				SendUpdate();
@@ -396,6 +399,9 @@ void CMqttConnection::on_message(const struct mosquitto_message *message)
 			} else if (v[2]=="STATE") {
 				Json::Value jsonPayload; Parse(payload, jsonPayload);
 				//value = jsonPayload["Time"].asString();
+				tasmotaDevice->wbDevice.set("lastSeen", time(NULL));
+				SendUpdate();
+
 			}
  		} else if (v[0] == "stat") {
 			if (v[2]=="STATUS") {
