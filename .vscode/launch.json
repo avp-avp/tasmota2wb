@@ -8,7 +8,7 @@
         "type": "lldb",
         "request": "launch",
         "program": "${workspaceFolder}/tasmota2wb/tasmota2wb",
-        "args": ["-s192.168.122.20"]
+        "args": ["-s192.168.178.20"]
       }
     ]
   }

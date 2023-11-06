@@ -168,10 +168,13 @@ void CMqttConnection::on_message(const struct mosquitto_message *message)
 			if (m_Devices.find(deviceName)!=m_Devices.end()) {
 				tasmotaDevice = m_Devices[deviceName];
 				tasmotaDevice->lastMessage = time(NULL);
+				tasmotaDevice->wbDevice.set("lastSeen", itoa(tasmotaDevice->lastMessage));
+
 				if (tasmotaDevice->wbDevice.getS("ip")=="Offline"){
 					tasmotaDevice->wbDevice.set("ip", tasmotaDevice->ip);
-					SendUpdate();
 				}
+
+				SendUpdate();
 				if (tasmotaDevice->b_NeedCreate && tasmotaDevice->lastStatusRequest+60<time(NULL)) {
 					queryDevice(deviceName);
 				}
@@ -369,7 +372,6 @@ void CMqttConnection::on_message(const struct mosquitto_message *message)
 					tasmotaDevice->wbDevice.set("ip", tasmotaDevice->ip);		
 				}
 				
-				tasmotaDevice->wbDevice.addControl("lastSeen", CWBControl::Generic, true);
 				CreateDevice(tasmotaDevice);
 				tasmotaDevice->b_NeedCreate = false;
 				SendUpdate();
@@ -396,13 +398,6 @@ void CMqttConnection::on_message(const struct mosquitto_message *message)
 					tasmotaDevice->wbDevice.set("ip", "Offline");
 					SendUpdate();
 				}
-			} else if (v[2]=="STATE") {
-				Json::Value jsonPayload; Parse(payload, jsonPayload);
-				//value = jsonPayload["Time"].asString();
-				tasmotaDevice->wbDevice.set("lastSeen", time(NULL));
-				SendUpdate();
-
-			}
  		} else if (v[0] == "stat") {
 			if (v[2]=="STATUS") {
 				if (m_Devices.find(deviceName)!=m_Devices.end()) {
@@ -583,6 +578,8 @@ void CMqttConnection::queryDevice(string deviceName){
 	if (m_Devices.find(deviceName)==m_Devices.end())
 	{
 		tasmotaDevice = new CTasmotaWBDevice(deviceName, deviceName); 
+		tasmotaDevice->wbDevice.addControl("lastSeen", CWBControl::Generic, true);
+		tasmotaDevice->wbDevice.set("lastSeen", time(NULL));
 		tasmotaDevice->wbDevice.addControl("ip"); 
 		tasmotaDevice->wbDevice.set("ip", "Unknown");
 		m_Devices[deviceName] = tasmotaDevice;			

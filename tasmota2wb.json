@@ -45,7 +45,7 @@
       {
         "name": "Main",
         "file_name": "/run/tasmota2wb.log",
-        "console_level": 31,
+        "console_level": 1,
         "file_level": 3,
         "log_time": "yes"
       }
