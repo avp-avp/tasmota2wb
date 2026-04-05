@@ -1,0 +1,17 @@
+#!/usr/bin/make -f
+
+export DH_VERBOSE = 1
+
+%:
+	dh $@
+
+override_dh_auto_configure:
+	autoreconf -fvi
+	dh_auto_configure -- --prefix=/usr --sysconfdir=/etc
+
+override_dh_auto_install:
+	install -D -m755 tasmota2wb/tasmota2wb debian/tasmota2wb/usr/bin/tasmota2wb
+	install -D -m644 tasmota2wb.service debian/tasmota2wb/lib/systemd/system/tasmota2wb.service
+	install -D -m644 tasmota2wb.json debian/tasmota2wb/etc/tasmota2wb.conf
+
+override_dh_auto_test:
