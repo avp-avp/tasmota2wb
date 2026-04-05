@@ -1,0 +1,25 @@
+Source: tasmota2wb
+Section: utils
+Priority: optional
+Maintainer: Alexey Pavlov <alexey@avp.name>
+Build-Depends:
+ debhelper-compat (= 13),
+ autoconf,
+ automake,
+ libtool,
+ pkg-config,
+ libjsoncpp-dev,
+ libmosquittopp-dev,
+ libxml2-dev
+Standards-Version: 4.6.2
+Rules-Requires-Root: no
+Homepage: https://github.com/avp-avp/tasmota2wb
+
+Package: tasmota2wb
+Architecture: any
+Depends:
+ ${misc:Depends},
+ ${shlibs:Depends}
+Description: Convert Tasmota MQTT notation to Wiren Board notation
+ Converts Tasmota MQTT topics and payloads into a format compatible with
+ Wiren Board MQTT devices and services.

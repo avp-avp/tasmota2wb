@@ -42,6 +42,9 @@ configure*
 *.in
 *.m4
 *.log
+autom4te.cache/
+.pkgbuild/
+dist/
 
 tasmota2wb
 libtool
