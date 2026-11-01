@@ -1,8 +1,14 @@
 {
   "general": {
     "sensors": [
+      {"path":"SI7020/Temperature",    "type":"temperature",  "name":"temperature"},
+      {"path":"SI7020/Humidity",       "type":"rel_humidity", "name":"humidity"},
       {"path":"SI7021/Temperature",    "type":"temperature",  "name":"temperature"},
       {"path":"SI7021/Humidity",       "type":"rel_humidity", "name":"humidity"},
+      {"path":"AHT2X/Temperature",    "type":"temperature",  "name":"temperature"},
+      {"path":"AHT2X/Humidity",       "type":"rel_humidity", "name":"humidity"},
+      {"path":"BMP280/Pressure",       "type":"atmospheric_pressure", "name":"pressure"},
+      {"path":"BMP280/Temperature",    "type":"temperature",  "name":"temperature-2"},
       {"path":"DS18B20-1/Temperature", "type":"temperature",  "dynamic_name":"DS18B20-1/Id"},
       {"path":"DS18B20-2/Temperature", "type":"temperature",  "dynamic_name":"DS18B20-2/Id"},
       {"path":"DS18B20-3/Temperature", "type":"temperature",  "dynamic_name":"DS18B20-3/Id"},
